@@ -1,4 +1,4 @@
-import cn.nikeo.server.database.tables.Category
+import cn.nikeo.server.database.tables.Categories
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.StdOutSqlLogger
 import org.jetbrains.exposed.sql.addLogger
@@ -9,7 +9,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class CategoryTableTest {
+class CategoriesTableTest {
     private lateinit var db: Database;
 
     @BeforeTest
@@ -23,7 +23,7 @@ class CategoryTableTest {
         transaction(db = db) {
             // print sql to std-out
             addLogger(StdOutSqlLogger)
-            val linuxId = Category.select { Category.name eq "Linux" }.single()[Category.id].value
+            val linuxId = Categories.select { Categories.name eq "Linux" }.single()[Categories.id].value
             assertEquals(linuxId, 4)
         }
     }

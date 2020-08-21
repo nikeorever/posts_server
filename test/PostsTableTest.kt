@@ -1,11 +1,11 @@
-import cn.nikeo.server.database.tables.Category
-import cn.nikeo.server.database.tables.Post
+import cn.nikeo.server.database.tables.Categories
+import cn.nikeo.server.database.tables.Posts
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 import kotlin.test.*
 
-class PostTableTest {
+class PostsTableTest {
     private lateinit var db: Database;
 
     @BeforeTest
@@ -19,9 +19,9 @@ class PostTableTest {
         transaction(db = db) {
             // print sql to std-out
             addLogger(StdOutSqlLogger)
-            val single = Post.select { Post.id eq 2 }.single()
-            val title = single[Post.title]
-            println(single[Post.date])
+            val single = Posts.select { Posts.id eq 2 }.single()
+            val title = single[Posts.title]
+            println(single[Posts.date])
             assertEquals(title, "Lambda")
         }
     }
@@ -31,13 +31,13 @@ class PostTableTest {
         transaction(db = db) {
             // print sql to std-out
             addLogger(StdOutSqlLogger)
-            val id = Post.insert {
+            val id = Posts.insert {
                 it[title] = "Lambda"
                 it[date] = DateTime.now()
                 it[tags] = "Lambda"
                 it[path] = "/posts/cpp/lambda.md"
-                it[categoryId] = Category.select { Category.name eq "C/C++" }.single()[Category.id]
-            } get Post.id
+                it[categoryId] = Categories.select { Categories.name eq "C/C++" }.single()[Categories.id]
+            } get Posts.id
             assertEquals(id.value, 2)
         }
     }
@@ -48,13 +48,13 @@ class PostTableTest {
             transaction(db = db) {
                 // print sql to std-out
                 addLogger(StdOutSqlLogger)
-                return@transaction Post.insert {
+                Posts.insert {
                     it[title] = "command:ps"
                     it[date] = DateTime.now()
                     it[tags] = "shell, ps"
                     it[path] = "/posts/linux/command_ps.md"
-                    it[categoryId] = entityId("", Category)
-                } get Post.id
+                    it[categoryId] = entityId("", Categories)
+                }
             }
         }
     }

@@ -8,7 +8,7 @@ val exposed_version: String by project
 
 plugins {
     application
-    kotlin("jvm") version "1.3.70"
+    kotlin("jvm") version "1.4.0"
 
     id("com.github.johnrengelman.shadow") version ("5.2.0")
 }
@@ -37,6 +37,7 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
     implementation("io.ktor:ktor-server-netty:$ktor_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
 
@@ -46,6 +47,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-jodatime:$exposed_version")
     implementation("mysql:mysql-connector-java:8.0.21")
+    implementation("com.zaxxer:HikariCP:3.4.5")
 
     implementation("io.ktor:ktor-gson:$ktor_version")
 

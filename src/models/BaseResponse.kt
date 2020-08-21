@@ -1,4 +1,4 @@
-package cn.nikeo.server.model
+package cn.nikeo.server.models
 
 import com.google.gson.annotations.SerializedName
 

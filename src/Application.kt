@@ -1,41 +1,27 @@
 package cn.nikeo.server
 
-import cn.nikeo.server.database.MySQLJdbcConnection
-import cn.nikeo.server.database.internalTransaction
-import cn.nikeo.server.database.tables.Category
-import cn.nikeo.server.database.tables.Post
+import cn.nikeo.server.database.DatabaseFactory
 import cn.nikeo.server.gson.DateTimeTypeAdapter
-import cn.nikeo.server.model.BaseResponse
-import io.ktor.application.Application
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.ContentNegotiation
-import io.ktor.gson.gson
-import io.ktor.response.respond
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.util.KtorExperimentalAPI
-import org.jetbrains.exposed.sql.*
+import cn.nikeo.server.models.BaseResponse
+import cn.nikeo.server.services.CategoryService
+import cn.nikeo.server.services.PostService
+import io.ktor.application.*
+import io.ktor.features.*
+import io.ktor.gson.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.util.*
+import org.jetbrains.exposed.sql.SortOrder
 import org.joda.time.DateTime
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 @KtorExperimentalAPI
 @Suppress("unused") // Referenced in application.conf
-@kotlin.jvm.JvmOverloads
-fun Application.module(testing: Boolean = false) {
-    val mysqlJdbcConnection: MySQLJdbcConnection
-    when {
-        isDev -> {
-            // Do things only in dev
-            mysqlJdbcConnection = MySQLJdbcConnection.dev
-        }
-        isProd -> {
-            // Do things only in prod
-            mysqlJdbcConnection = MySQLJdbcConnection.docker
-        }
-        else -> throw IllegalArgumentException("dev or prod required!")
-    }
+fun Application.module() {
+    val categoryService = CategoryService()
+    val postService = PostService()
+
     // Do things for all the environments
     install(ContentNegotiation) {
         gson {
@@ -52,20 +38,12 @@ fun Application.module(testing: Boolean = false) {
         }
     }
 
+    DatabaseFactory.init()
+
     routing {
         get("/v1/categories") {
             val enable = call.parameters["enable"]?.toBoolean()
-            val categories = internalTransaction(mysqlJdbcConnection) {
-                return@internalTransaction Category.select {
-                    if (enable == null) Op.TRUE else Category.enable eq enable
-                }.map {
-                    mapOf(
-                        "id" to it[Category.id].value,
-                        "name" to it[Category.name],
-                        "enable" to it[Category.enable]
-                    )
-                }
-            }
+            val categories = categoryService.getCategories(enable = enable)
             call.respond(
                 BaseResponse(
                     success = true,
@@ -90,29 +68,13 @@ fun Application.module(testing: Boolean = false) {
                 }
             }
 
-            val posts = internalTransaction(mysqlJdbcConnection) {
-                return@internalTransaction Post.select {
-                    val categoryIdOp = if (categoryId == null) Op.TRUE else Post.categoryId eq categoryId
-                    val enableOp = if (enable == null) Op.TRUE else Post.enable eq enable
-                    categoryIdOp and enableOp
-                }.orderBy(Post.date, order = order)
-                    .also { query ->
-                        if (limit != null && offset != null && limit > 0 && offset > 0) {
-                            query.limit(limit, offset)
-                        }
-                    }
-                    .map {
-                        mapOf(
-                            "id" to it[Post.id].value,
-                            "title" to it[Post.title],
-                            "date" to it[Post.date],
-                            "tags" to it[Post.tags],
-                            "path" to it[Post.path],
-                            "enable" to it[Post.enable],
-                            "category_id" to it[Post.categoryId].value
-                        )
-                    }
-            }
+            val posts = postService.getPosts(
+                categoryId = categoryId,
+                enable = enable,
+                limit = limit,
+                offset = offset,
+                order = order
+            )
             call.respond(
                 BaseResponse(
                     success = true,
@@ -123,15 +85,3 @@ fun Application.module(testing: Boolean = false) {
         }
     }
 }
-
-@KtorExperimentalAPI
-val Application.envKind
-    get() = environment.config.property("ktor.environment").getString()
-
-@KtorExperimentalAPI
-val Application.isDev
-    get() = envKind == "dev"
-
-@KtorExperimentalAPI
-val Application.isProd
-    get() = envKind != "dev"
